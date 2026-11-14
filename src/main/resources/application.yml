@@ -1,0 +1,77 @@
+spring:
+  application:
+    name: rag-engine
+
+  datasource:
+    url: jdbc:postgresql://localhost:5432/rag_engine
+    username: ${POSTGRESQL_USERNAME}
+    password: ${POSTGRESQL_PASSWORD}
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: 10
+      minimum-idle: 2
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
+
+
+  ai:
+    model:
+      embedding: ollama
+      chat: ollama
+
+    ollama:
+      base-url: http://localhost:11434
+      embedding:
+        options:
+          model: qwen3-embedding:0.6b
+      chat:
+        options:
+          model: qwen3:4b-instruct
+
+#    google:
+#      genai:
+#        api-key: ${GEMINI_API_KEY}
+#        chat:
+#          model: gemini-3.5-flash-lite
+
+  servlet:
+    multipart:
+          max-file-size: 20MB
+          max-request-size: 25MB
+
+  flyway:
+    enabled: true
+    baseline-on-migrate: true
+    locations: classpath:db/migration
+  config:
+    import: optional:file:.env[.properties]
+
+
+rag:
+  retrieval:
+    strategies:
+      - name: vector
+        enabled: true
+        candidate-limit: 10
+
+      - name: keyword
+        enabled: true
+        candidate-limit: 10
+
+      - name: metadata
+        enabled: false
+        candidate-limit: 5
+
+    fusion:
+      strategy: rrf
+      rrf-k: 60
+      candidate-limit: 5
+
+    final-top-k: 5
