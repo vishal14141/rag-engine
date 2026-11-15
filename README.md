@@ -84,3 +84,7 @@ http://localhost:8080/api/rag/ask?question=Why%20did%20the%20RBI%20reduce%20the%
 - `paragraphNumbers`: Paragraph numbers containing the relevant information.
 - `startPage`: Starting page number.
 - `endPage`: Ending page number.
+
+
+### Database
+#### PostgreSQL + Vector extension (to store vector embeddings)
