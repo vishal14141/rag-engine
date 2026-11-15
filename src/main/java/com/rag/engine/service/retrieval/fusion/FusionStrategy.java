@@ -8,5 +8,5 @@ import java.util.Map;
 public interface FusionStrategy {
 
     String getName();
-    List<RankedChunk> fuse(Map<String, List<RankedChunk>> map, int limit);
+    List<RankedChunk> fuse(List<Map<String, List<RankedChunk>>> results, int limit);
 }

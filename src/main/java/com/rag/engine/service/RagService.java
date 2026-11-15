@@ -8,6 +8,7 @@ import com.rag.engine.service.retrieval.RetrievalOrchestrator;
 import com.rag.engine.service.retrieval.dto.RankedChunk;
 import com.rag.engine.service.retrieval.dto.RetrievedChunk;
 import com.rag.engine.service.retrieval.fusion.FusionOrchestrator;
+import com.rag.engine.service.retrieval.queryrewriting.QueryRewritingStrategy;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.stereotype.Service;
@@ -32,12 +33,14 @@ public class RagService {
     private final FusionOrchestrator fusionOrchestrator;
     private final ChatClient chatClient;
     private final RetrievalProperties retrievalProperties;
+    private final QueryRewritingStrategy queryRewritingStrategy;
 
-    public RagService(RetrievalOrchestrator retrievalOrchestrator, FusionOrchestrator fusionOrchestrator, ChatClient chatClient, RetrievalProperties retrievalProperties) {
+    public RagService(RetrievalOrchestrator retrievalOrchestrator, FusionOrchestrator fusionOrchestrator, ChatClient chatClient, RetrievalProperties retrievalProperties, QueryRewritingStrategy queryRewritingStrategy) {
         this.retrievalOrchestrator = retrievalOrchestrator;
         this.fusionOrchestrator = fusionOrchestrator;
         this.chatClient = chatClient;
         this.retrievalProperties = retrievalProperties;
+        this.queryRewritingStrategy = queryRewritingStrategy;
     }
 
 
@@ -45,15 +48,21 @@ public class RagService {
 
         if (query == null || query.isBlank()) throw new IllegalArgumentException("Query is empty or null");
 
-        Map<String, List<RankedChunk>> retrievedChunkMap = retrievalOrchestrator.retrieve(query);
-        List<RankedChunk> rankedChunks = fusionOrchestrator.fuse(retrievedChunkMap);
+        List<String> queries = new ArrayList<>();
+        queries.add(query);
+        queries.addAll(queryRewritingStrategy.rewrite(query));
+
+        log.info("Total queries: {}", queries.size());
+
+
+        List<Map<String, List<RankedChunk>>> retrievedChunkMapList = retrievalOrchestrator.retrieve(queries);
+        List<RankedChunk> rankedChunks = fusionOrchestrator.fuse(retrievedChunkMapList);
+
+        if (rankedChunks.isEmpty()) return new RagResponse("I don't have enough information to answer this question", List.of());
 
         int finalTopK = Math.min(retrievalProperties.getFinalTopK(), rankedChunks.size());
-
         List<RankedChunk> topFinalRankedChunks = rankedChunks.subList(0, finalTopK);
 
-        if (retrievedChunkMap.isEmpty())
-            return new RagResponse("I don't have enough information to answer this question", List.of());
 
         StringBuilder context = new StringBuilder();
         List<SourceReference> sources = new ArrayList<>();
@@ -71,7 +80,7 @@ public class RagService {
             sources.add(new SourceReference(i + 1, retrievedChunk.section(), retrievedChunk.paragraphNumbers(), retrievedChunk.startPage(), retrievedChunk.endPage()));
         }
 
-        String prompt = Constant.PROMPT_TEMPLATE.formatted(context, query);
+        String prompt = Constant.PROMPT_TEMPLATE_LLM.formatted(context, query);
 
         var start = System.currentTimeMillis();
         String answer = chatClient.prompt().user(prompt).call().content();
