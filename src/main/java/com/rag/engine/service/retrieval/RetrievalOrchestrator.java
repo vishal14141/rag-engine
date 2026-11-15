@@ -2,7 +2,6 @@ package com.rag.engine.service.retrieval;
 
 import com.rag.engine.config.RetrievalProperties;
 import com.rag.engine.service.retrieval.dto.RankedChunk;
-import com.rag.engine.service.retrieval.dto.RetrievedChunk;
 import com.rag.engine.service.retrieval.strategy.RetrievalStrategy;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -29,8 +28,7 @@ public class RetrievalOrchestrator {
     private final Map<String, RetrievalStrategy> strategies;
 
 
-
-    public RetrievalOrchestrator(RetrievalProperties retrievalProperties, List<RetrievalStrategy> retrievalStrategies){
+    public RetrievalOrchestrator(RetrievalProperties retrievalProperties, List<RetrievalStrategy> retrievalStrategies) {
         this.retrievalProperties = retrievalProperties;
 
         this.strategies = retrievalStrategies.stream()
@@ -40,12 +38,12 @@ public class RetrievalOrchestrator {
                 ));
     }
 
-    public Map<String, List<RankedChunk>> retrieve(String query){
+    public Map<String, List<RankedChunk>> retrieve(String query) {
 
         Map<String, List<RankedChunk>> map = new HashMap<>();
 
-        for (RetrievalProperties.StrategyConfig strategyConfig : retrievalProperties.getStrategies()){
-            if(!strategyConfig.isEnabled()) continue;
+        for (RetrievalProperties.StrategyConfig strategyConfig : retrievalProperties.getStrategies()) {
+            if (!strategyConfig.isEnabled()) continue;
 
             RetrievalStrategy strategy = strategies.get(strategyConfig.getName());
 
@@ -60,7 +58,7 @@ public class RetrievalOrchestrator {
             List<RankedChunk> chunks = strategy.retrieve(query, strategyConfig.getCandidateLimit());
             log.info("Retrieval Strategy '{}' returned {} results", strategy.getName(), chunks.size());
             log.info("Retrieval Strategy '{}' execution time: {} ms", strategyConfig.getName(), System.currentTimeMillis() - start);
-            if(chunks.isEmpty()) continue;
+            if (chunks.isEmpty()) continue;
             map.put(strategyConfig.getName(), chunks);
         }
         return map;

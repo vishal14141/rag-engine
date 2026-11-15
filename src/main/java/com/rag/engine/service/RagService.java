@@ -43,12 +43,14 @@ public class RagService {
 
     public RagResponse ask(String query) {
 
-        if (query == null || query.isEmpty()) throw new IllegalArgumentException("Query is empty or null");
+        if (query == null || query.isBlank()) throw new IllegalArgumentException("Query is empty or null");
 
         Map<String, List<RankedChunk>> retrievedChunkMap = retrievalOrchestrator.retrieve(query);
         List<RankedChunk> rankedChunks = fusionOrchestrator.fuse(retrievedChunkMap);
 
-        List<RankedChunk> topFinalRankedChunks = rankedChunks.subList(0, retrievalProperties.getFinalTopK());
+        int finalTopK = Math.min(retrievalProperties.getFinalTopK(), rankedChunks.size());
+
+        List<RankedChunk> topFinalRankedChunks = rankedChunks.subList(0, finalTopK);
 
         if (retrievedChunkMap.isEmpty())
             return new RagResponse("I don't have enough information to answer this question", List.of());
@@ -73,7 +75,7 @@ public class RagService {
 
         var start = System.currentTimeMillis();
         String answer = chatClient.prompt().user(prompt).call().content();
-        log.info("LLM: {} ms", System.currentTimeMillis() - start);
+        log.info("LLM Response time: {} ms", System.currentTimeMillis() - start);
 
         return new RagResponse(answer, sources);
     }

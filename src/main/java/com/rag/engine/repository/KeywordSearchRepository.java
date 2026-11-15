@@ -23,41 +23,41 @@ public class KeywordSearchRepository {
     public List<RankedChunk> search(String query, int limit) {
 
         String sql = """
-            WITH search_lexemes AS (
-                SELECT lexeme
-                FROM unnest(
-                    tsvector_to_array(
-                        to_tsvector('english', :query)
-                    )
-                ) AS lexeme
-                WHERE lexeme !~ '^[0-9]+$'
-                  AND lexeme !~ '^-[0-9]+$'
-            ),
-            search_query AS (
-                SELECT string_agg(
-                    quote_literal(lexeme),
-                    ' | '
-                )::tsquery AS ts_query
-                FROM search_lexemes
-            )
-            SELECT
-                d.id,
-                d.section,
-                d.paragraph_numbers,
-                d.content,
-                d.start_page,
-                d.end_page,
-                ts_rank(
-                    to_tsvector('english', d.content),
-                    q.ts_query
-                ) AS keyword_score
-            FROM document_chunks d
-            CROSS JOIN search_query q
-            WHERE q.ts_query IS NOT NULL
-              AND to_tsvector('english', d.content) @@ q.ts_query
-            ORDER BY keyword_score DESC
-            LIMIT :limit
-            """;
+                WITH search_lexemes AS (
+                    SELECT lexeme
+                    FROM unnest(
+                        tsvector_to_array(
+                            to_tsvector('english', :query)
+                        )
+                    ) AS lexeme
+                    WHERE lexeme !~ '^[0-9]+$'
+                      AND lexeme !~ '^-[0-9]+$'
+                ),
+                search_query AS (
+                    SELECT string_agg(
+                        quote_literal(lexeme),
+                        ' | '
+                    )::tsquery AS ts_query
+                    FROM search_lexemes
+                )
+                SELECT
+                    d.id,
+                    d.section,
+                    d.paragraph_numbers,
+                    d.content,
+                    d.start_page,
+                    d.end_page,
+                    ts_rank(
+                        to_tsvector('english', d.content),
+                        q.ts_query
+                    ) AS keyword_score
+                FROM document_chunks d
+                CROSS JOIN search_query q
+                WHERE q.ts_query IS NOT NULL
+                  AND to_tsvector('english', d.content) @@ q.ts_query
+                ORDER BY keyword_score DESC
+                LIMIT :limit
+                """;
 
         return jdbcTemplate.query(
                 sql,

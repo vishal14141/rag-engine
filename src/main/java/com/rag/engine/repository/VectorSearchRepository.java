@@ -21,26 +21,24 @@ public class VectorSearchRepository {
     public List<RankedChunk> search(float[] queryEmbedding, int limit) {
 
         if (queryEmbedding == null || queryEmbedding.length == 0) {
-            throw new IllegalArgumentException(
-                    "Query embedding cannot be empty"
-            );
+            throw new IllegalArgumentException("Query embedding cannot be empty");
         }
 
         String vector = Arrays.toString(queryEmbedding);
 
         String sql = """
-            SELECT
-                id,
-                section,
-                paragraph_numbers,
-                content,
-                start_page,
-                end_page,
-                embedding <=> CAST(? AS vector) AS distance
-            FROM document_chunks
-            ORDER BY embedding <=> CAST(? AS vector)
-            LIMIT ?
-            """;
+                SELECT
+                    id,
+                    section,
+                    paragraph_numbers,
+                    content,
+                    start_page,
+                    end_page,
+                    embedding <=> CAST(? AS vector) AS distance
+                FROM document_chunks
+                ORDER BY embedding <=> CAST(? AS vector)
+                LIMIT ?
+                """;
 
         return jdbcTemplate.query(
                 sql,
