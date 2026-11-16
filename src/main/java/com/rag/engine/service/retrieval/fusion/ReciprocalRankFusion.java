@@ -25,10 +25,10 @@ public class ReciprocalRankFusion implements FusionStrategy{
 
     @Override
     public List<RankedChunk> fuse(
-            Map<String, List<RankedChunk>> map,
+            List<Map<String, List<RankedChunk>>> results,
             int limit) {
 
-        if (map == null || map.isEmpty() || limit <= 0) {
+        if (results == null || results.isEmpty() || limit <= 0) {
             return List.of();
         }
 
@@ -36,37 +36,53 @@ public class ReciprocalRankFusion implements FusionStrategy{
 
         Map<UUID, FusionAccumulator> accumulators = new HashMap<>();
 
-        for (Map.Entry<String, List<RankedChunk>> entry : map.entrySet()) {
+        for (int queryIndex = 0; queryIndex < results.size(); queryIndex++) {
 
-            String strategyName = entry.getKey();
-            List<RankedChunk> chunks = entry.getValue();
+            Map<String, List<RankedChunk>> strategyResults =
+                    results.get(queryIndex);
 
-            if (chunks == null || chunks.isEmpty()) {
+            if (strategyResults == null) {
                 continue;
             }
 
-            for (int i = 0; i < chunks.size(); i++) {
+            for (Map.Entry<String, List<RankedChunk>> entry
+                    : strategyResults.entrySet()) {
 
-                RankedChunk rankedChunk = chunks.get(i);
+                String rankingListName =
+                        "query-" + queryIndex + ":" + entry.getKey();
 
-                UUID chunkId = rankedChunk.chunk().id();
+                List<RankedChunk> chunks = entry.getValue();
 
-                FusionAccumulator accumulator = accumulators.computeIfAbsent(
-                        chunkId,
-                        id -> new FusionAccumulator(rankedChunk.chunk())
-                );
+                if (chunks == null || chunks.isEmpty()) {
+                    continue;
+                }
 
-                int rank = i + 1;
+                for (int i = 0; i < chunks.size(); i++) {
 
-                accumulator.addRank(strategyName, rank);
+                    RankedChunk rankedChunk = chunks.get(i);
+                    UUID chunkId = rankedChunk.chunk().id();
 
-                accumulator.addScore(1.0 / (rrfK + rank));
+                    FusionAccumulator accumulator =
+                            accumulators.computeIfAbsent(
+                                    chunkId,
+                                    id -> new FusionAccumulator(
+                                            rankedChunk.chunk()
+                                    )
+                            );
+
+                    int rank = i + 1;
+
+                    accumulator.addRank(rankingListName, rank);
+                    accumulator.addScore(1.0 / (rrfK + rank));
+                }
             }
         }
 
         return accumulators.values().stream()
                 .map(FusionAccumulator::toFusedChunk)
-                .sorted(Comparator.comparingDouble(FusedChunk::score).reversed())
+                .sorted(Comparator.comparingDouble(
+                        FusedChunk::score
+                ).reversed())
                 .limit(limit)
                 .map(chunk -> (RankedChunk) chunk)
                 .toList();

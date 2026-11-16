@@ -5,7 +5,6 @@ import com.rag.engine.service.retrieval.dto.RankedChunk;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -23,19 +22,26 @@ public class FusionOrchestrator {
         this.strategy = fusionStrategies.stream().filter(strategy -> Objects.equals(retrievalProperties.getFusion().getStrategy(), strategy.getName())).findFirst().orElseThrow();
     }
 
-    public List<RankedChunk> fuse(Map<String, List<RankedChunk>> map) {
+    public List<RankedChunk> fuse(List<Map<String, List<RankedChunk>>> results) {
 
-        if (map.isEmpty()) return List.of();
-
-        if (map.size() == 1) {
-            log.info("Only {} retrieved strategy returned result, skipping fusion", map.size());
-            return new ArrayList<>(map.values().iterator().next());
-        } else {
-            log.info("Fusion started");
-            List<RankedChunk> rankedChunks = strategy.fuse(map, retrievalProperties.getFusion().getCandidateLimit());
-            log.info("Fusion returned list of size: {}", rankedChunks.size());
-            return rankedChunks;
+        if (results == null || results.isEmpty()) {
+            return List.of();
         }
+
+        long rankingListCount = results.stream()
+                .filter(Objects::nonNull)
+                .mapToLong(Map::size)
+                .sum();
+
+        if (rankingListCount == 0) {
+            return List.of();
+        }
+
+        log.info("Fusion started with {} independent ranking lists", rankingListCount);
+        List<RankedChunk> rankedChunks = strategy.fuse(results, retrievalProperties.getFusion().getCandidateLimit());
+        log.info("Fusion returned list of size: {}", rankedChunks.size());
+
+        return rankedChunks;
     }
 
 }

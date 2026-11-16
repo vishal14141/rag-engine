@@ -6,6 +6,7 @@ import com.rag.engine.service.retrieval.strategy.RetrievalStrategy;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -38,29 +39,36 @@ public class RetrievalOrchestrator {
                 ));
     }
 
-    public Map<String, List<RankedChunk>> retrieve(String query) {
+    public List<Map<String, List<RankedChunk>>> retrieve(List<String> queryList) {
 
-        Map<String, List<RankedChunk>> map = new HashMap<>();
+        List<Map<String, List<RankedChunk>>> list = new ArrayList<>();
 
-        for (RetrievalProperties.StrategyConfig strategyConfig : retrievalProperties.getStrategies()) {
-            if (!strategyConfig.isEnabled()) continue;
+        for (String query : queryList) {
+            log.info("Retrieving results for query: {}", query);
 
-            RetrievalStrategy strategy = strategies.get(strategyConfig.getName());
+            Map<String, List<RankedChunk>> map = new HashMap<>();
 
-            if (strategy == null) {
-                throw new IllegalStateException(
-                        "No RetrievalStrategy implementation found for: "
-                                + strategyConfig.getName()
-                );
+            for (RetrievalProperties.StrategyConfig strategyConfig : retrievalProperties.getStrategies()) {
+                if (!strategyConfig.isEnabled()) continue;
+
+                RetrievalStrategy strategy = strategies.get(strategyConfig.getName());
+
+                if (strategy == null) {
+                    throw new IllegalStateException(
+                            "No RetrievalStrategy implementation found for: "
+                                    + strategyConfig.getName()
+                    );
+                }
+
+                long start = System.currentTimeMillis();
+                List<RankedChunk> chunks = strategy.retrieve(query, strategyConfig.getCandidateLimit());
+                log.info("Retrieval Strategy '{}' returned {} results", strategy.getName(), chunks.size());
+                log.info("Retrieval Strategy '{}' execution time: {} ms", strategyConfig.getName(), System.currentTimeMillis() - start);
+                if (chunks.isEmpty()) continue;
+                map.put(strategyConfig.getName(), chunks);
             }
-
-            long start = System.currentTimeMillis();
-            List<RankedChunk> chunks = strategy.retrieve(query, strategyConfig.getCandidateLimit());
-            log.info("Retrieval Strategy '{}' returned {} results", strategy.getName(), chunks.size());
-            log.info("Retrieval Strategy '{}' execution time: {} ms", strategyConfig.getName(), System.currentTimeMillis() - start);
-            if (chunks.isEmpty()) continue;
-            map.put(strategyConfig.getName(), chunks);
+            list.add(map);
         }
-        return map;
+        return list;
     }
 }

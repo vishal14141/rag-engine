@@ -13,7 +13,7 @@ public class DocumentChunk {
 
     private String section;
     private String content;
-    private List<String> paragraphNumbers;
+    private List<ChunkParagraph> paragraphs;
     private int startPage;
     private int endPage;
     private int tokenCount;

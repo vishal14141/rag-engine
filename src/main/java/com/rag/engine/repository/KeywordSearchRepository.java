@@ -1,5 +1,6 @@
 package com.rag.engine.repository;
 
+import com.rag.engine.dto.ChunkParagraph;
 import com.rag.engine.service.retrieval.dto.RankedChunk;
 import com.rag.engine.service.retrieval.dto.RetrievedChunk;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
@@ -14,11 +15,13 @@ import java.util.UUID;
 public class KeywordSearchRepository {
 
     private final NamedParameterJdbcTemplate jdbcTemplate;
+    private final ParagraphRepository paragraphRepository;
 
-    public KeywordSearchRepository(
-            NamedParameterJdbcTemplate jdbcTemplate) {
+    public KeywordSearchRepository(NamedParameterJdbcTemplate jdbcTemplate, ParagraphRepository paragraphRepository) {
         this.jdbcTemplate = jdbcTemplate;
+        this.paragraphRepository = paragraphRepository;
     }
+
 
     public List<RankedChunk> search(String query, int limit) {
 
@@ -59,29 +62,36 @@ public class KeywordSearchRepository {
                 LIMIT :limit
                 """;
 
-        return jdbcTemplate.query(
+        List<RetrievedChunk> chunks = jdbcTemplate.query(
                 sql,
                 Map.of("query", query, "limit", limit),
-                (rs, rowNum) -> {
-
-                    var sqlArray = rs.getArray("paragraph_numbers");
-
-                    List<String> paragraphs = sqlArray == null
-                            ? List.of()
-                            : Arrays.asList(
-                            (String[]) sqlArray.getArray()
-                    );
-
-                    return new RetrievedChunk(
-                            rs.getObject("id", UUID.class),
-                            rs.getString("section"),
-                            paragraphs,
-                            rs.getString("content"),
-                            rs.getInt("start_page"),
-                            rs.getInt("end_page"),
-                            rs.getDouble("keyword_score")
-                    );
-                }
+                (rs, rowNum) -> new RetrievedChunk(
+                        rs.getObject("id", UUID.class),
+                        rs.getString("section"),
+                        List.of(), // Paragraphs populated in the next step
+                        rs.getString("content"),
+                        rs.getInt("start_page"),
+                        rs.getInt("end_page"),
+                        rs.getDouble("keyword_score")
+                )
         );
+
+        Map<UUID, List<ChunkParagraph>> paragraphs =
+                paragraphRepository.findByChunkIds(
+                        chunks.stream().map(RetrievedChunk::id).toList()
+                );
+
+        return chunks.stream()
+                .map(chunk -> new RetrievedChunk(
+                        chunk.id(),
+                        chunk.section(),
+                        paragraphs.getOrDefault(chunk.id(), List.of()),
+                        chunk.content(),
+                        chunk.startPage(),
+                        chunk.endPage(),
+                        chunk.retrievalScore()
+                ))
+                .map(chunk -> (RankedChunk) chunk)
+                .toList();
     }
 }
