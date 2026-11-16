@@ -38,16 +38,13 @@ public class EmbeddingService {
         return embedding;
     }
 
+    public List<float[]> generateEmbeddings(List<String> texts) {
 
-    public List<float[]> generateEmbeddings(List<DocumentChunk> chunks) {
-
-        if (chunks == null || chunks.isEmpty()) {
+        if (texts == null || texts.isEmpty()) {
             return Collections.emptyList();
         }
 
-        log.info("Generation embedding os chunk size - {}", chunks.size());
-
-        List<String> texts = chunks.stream().map(DocumentChunk::getContent).toList();
+        log.info("Generating embedding for list size: {}", texts.size());
 
         List<float[]> embeddings = new ArrayList<>();
 
@@ -57,7 +54,7 @@ public class EmbeddingService {
             log.info("Embedding Batch {} of size {} completed", i / EMBEDDING_BATCH_SIZE, batch.size());
         }
 
-        if (embeddings.size() != chunks.size()) {
+        if (embeddings.size() != texts.size()) {
             throw new IllegalStateException(
                     "Embedding count does not match chunk count"
             );

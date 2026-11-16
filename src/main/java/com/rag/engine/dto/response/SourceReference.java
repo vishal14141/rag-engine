@@ -9,6 +9,7 @@ public record SourceReference(
         String section,
         List<String> paragraphNumbers,
         int startPage,
-        int endPage
+        int endPage,
+        List<String> excerpts
 ) {
 }

@@ -44,7 +44,8 @@ public class DocumentProcessingService {
         List<DocumentChunk> chunks = chunkingService.createChunks(paragraphs);
 
         // 4. Generate embeddings
-        List<float[]> embeddings = embeddingService.generateEmbeddings(chunks);
+        List<String> texts = chunks.stream().map(DocumentChunk::getContent).toList();
+        List<float[]> embeddings = embeddingService.generateEmbeddings(texts);
 
         // 5. Persist document and chunks
         return documentStorageService.saveDocument(file.getOriginalFilename(), chunks, embeddings);

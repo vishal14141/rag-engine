@@ -1,5 +1,7 @@
+
 package com.rag.engine.service.ingestion.chunking;
 
+import com.rag.engine.dto.ChunkParagraph;
 import com.rag.engine.dto.DocumentChunk;
 import com.rag.engine.dto.ExtractedParagraph;
 import org.springframework.stereotype.Service;
@@ -42,12 +44,13 @@ public class ChunkingService {
                     boolean differentSection = currentChunk != null
                             && !Objects.equals(
                             currentChunk.getSection(),
-                            paragraph.getSection());
+                            paragraph.getSection()
+                    );
 
                     boolean exceedsLimit = currentChunk != null
                             && estimateTokens(
-                            currentChunk.getContent() + " " + unit)
-                            > MAX_TOKEN_SIZE_LIMIT_PER_CHUNK;
+                            currentChunk.getContent() + " " + unit
+                    ) > MAX_TOKEN_SIZE_LIMIT_PER_CHUNK;
 
                     if (differentSection || exceedsLimit) {
                         chunks.add(currentChunk);
@@ -65,20 +68,12 @@ public class ChunkingService {
                         );
                     }
 
-                    // Preserve paragraph metadata without duplicates.
-                    if (!currentChunk.getParagraphNumbers()
-                            .contains(paragraph.getParagraphNumber())) {
+                    appendContent(currentChunk, unit);
 
-                        currentChunk.getParagraphNumbers()
-                                .add(paragraph.getParagraphNumber());
-                    }
-
-                    String content = currentChunk.getContent();
-
-                    currentChunk.setContent(
-                            content.isEmpty()
-                                    ? unit
-                                    : content + " " + unit
+                    appendParagraph(
+                            currentChunk,
+                            paragraph,
+                            unit
                     );
 
                     currentChunk.setTokenCount(
@@ -102,6 +97,65 @@ public class ChunkingService {
         return chunks;
     }
 
+    private void appendContent(
+            DocumentChunk chunk,
+            String unit) {
+
+        String content = chunk.getContent();
+
+        chunk.setContent(
+                content.isEmpty()
+                        ? unit
+                        : content + " " + unit
+        );
+    }
+
+    private void appendParagraph(
+            DocumentChunk chunk,
+            ExtractedParagraph sourceParagraph,
+            String content) {
+
+        List<ChunkParagraph> chunkParagraphs = chunk.getParagraphs();
+
+        if (!chunkParagraphs.isEmpty()) {
+
+            int lastIndex = chunkParagraphs.size() - 1;
+
+            ChunkParagraph lastParagraph =
+                    chunkParagraphs.get(lastIndex);
+
+            boolean sameParagraph =
+                    Objects.equals(
+                            lastParagraph.paragraphNumber(),
+                            sourceParagraph.getParagraphNumber()
+                    )
+                            && lastParagraph.pageNumber()
+                            == sourceParagraph.getPageNumber();
+
+            if (sameParagraph) {
+
+                chunkParagraphs.set(
+                        lastIndex,
+                        new ChunkParagraph(
+                                lastParagraph.paragraphNumber(),
+                                lastParagraph.content() + " " + content,
+                                lastParagraph.pageNumber()
+                        )
+                );
+
+                return;
+            }
+        }
+
+        chunkParagraphs.add(
+                new ChunkParagraph(
+                        sourceParagraph.getParagraphNumber(),
+                        content,
+                        sourceParagraph.getPageNumber()
+                )
+        );
+    }
+
     private List<String> splitParagraph(String text) {
 
         return Arrays.stream(text.split("(?<=[.!?])\\s+"))
@@ -123,7 +177,6 @@ public class ChunkingService {
 
         for (String word : words) {
 
-            // Handle an exceptionally long individual word.
             if (estimateTokens(word) > MAX_TOKEN_SIZE_LIMIT_PER_CHUNK) {
 
                 if (!current.isEmpty()) {
@@ -171,9 +224,11 @@ public class ChunkingService {
 
         while (start < word.length()) {
 
-            int end = Math.min(start + maxCharacters, word.length());
+            int end = Math.min(
+                    start + maxCharacters,
+                    word.length()
+            );
 
-            // Avoid breaking Unicode surrogate pairs.
             if (end < word.length()
                     && Character.isHighSurrogate(word.charAt(end - 1))
                     && Character.isLowSurrogate(word.charAt(end))) {

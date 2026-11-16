@@ -75,3 +75,7 @@ rag:
       candidate-limit: 5
 
     final-top-k: 5
+
+  compression:
+    similarity-threshold: 0.2
+    max-sentences: 30
