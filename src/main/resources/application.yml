@@ -43,8 +43,8 @@ spring:
 
   servlet:
     multipart:
-          max-file-size: 20MB
-          max-request-size: 25MB
+          max-file-size: 50MB
+          max-request-size: 500MB
 
   flyway:
     enabled: true
@@ -79,3 +79,8 @@ rag:
   compression:
     similarity-threshold: 0.2
     max-sentences: 30
+
+
+logging:
+  level:
+    org.apache.pdfbox.pdmodel.font.PDType0Font: ERROR

@@ -26,4 +26,9 @@ public class KeywordSearchStrategy implements RetrievalStrategy {
     public List<RankedChunk> retrieve(String query, int limit) {
         return keywordSearchRepository.search(query, limit);
     }
+
+    @Override
+    public List<RankedChunk> retrieve(String query, int limit, List<String> financialYears) {
+        return keywordSearchRepository.search(query, limit, financialYears);
+    }
 }

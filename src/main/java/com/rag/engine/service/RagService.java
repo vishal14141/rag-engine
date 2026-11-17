@@ -45,8 +45,11 @@ public class RagService {
         this.contextCompressionStrategy = contextCompressionStrategy;
     }
 
-
     public RagResponse ask(String query) {
+        return ask(query, null);
+    }
+
+    public RagResponse ask(String query, List<String> financialYears) {
 
         if (query == null || query.isBlank()) throw new IllegalArgumentException("Query is empty or null");
 
@@ -58,7 +61,7 @@ public class RagService {
         log.info("Total queries: {}", queries.size());
 
         // 2. Retrieval
-        List<Map<String, List<RankedChunk>>> retrievedChunkMapList = retrievalOrchestrator.retrieve(queries);
+        List<Map<String, List<RankedChunk>>> retrievedChunkMapList = retrievalOrchestrator.retrieve(queries, financialYears);
 
         // 3. Fusion
         List<RankedChunk> rankedChunks = fusionOrchestrator.fuse(retrievedChunkMapList);

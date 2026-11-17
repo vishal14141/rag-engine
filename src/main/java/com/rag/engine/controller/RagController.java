@@ -9,6 +9,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.List;
+
 @Slf4j
 @RestController
 @RequestMapping("/api/rag")
@@ -22,8 +24,9 @@ public class RagController {
     }
 
     @GetMapping("/ask")
-    public ResponseEntity<RagResponse> ask(@RequestParam String question) {
-        log.info("User question : {}", question);
-        return ResponseEntity.ok(ragService.ask(question));
+    public ResponseEntity<RagResponse> ask(@RequestParam String question, @RequestParam(required = false)List<String> financialYears) {
+        log.info("User question: {}", question);
+        log.info("Financial years: {}", financialYears);
+        return ResponseEntity.ok(ragService.ask(question, financialYears));
     }
 }

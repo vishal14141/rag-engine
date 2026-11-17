@@ -3,7 +3,7 @@ package com.rag.engine.constants;
 public class Constant {
 
     public static final int EMBEDDING_DIMENSION = 1024;
-    public static final int EMBEDDING_BATCH_SIZE = 50;
+    public static final int EMBEDDING_BATCH_SIZE = 32;
     public static final String PROMPT_TEMPLATE_LLM = """
             You are a factual question-answering system.
             

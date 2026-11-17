@@ -54,6 +54,8 @@ public class EmbeddingService {
             log.info("Embedding Batch {} of size {} completed", i / EMBEDDING_BATCH_SIZE, batch.size());
         }
 
+        log.info("Generated embedding for list size: {}", embeddings.size());
+
         if (embeddings.size() != texts.size()) {
             throw new IllegalStateException(
                     "Embedding count does not match chunk count"

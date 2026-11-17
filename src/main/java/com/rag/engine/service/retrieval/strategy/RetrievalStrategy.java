@@ -10,4 +10,6 @@ public interface RetrievalStrategy {
 
     List<RankedChunk> retrieve(String query, int candidateLimit);
 
+    List<RankedChunk> retrieve(String query, int candidateLimit, List<String> financialYears);
+
 }

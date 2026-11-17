@@ -39,7 +39,7 @@ public class RetrievalOrchestrator {
                 ));
     }
 
-    public List<Map<String, List<RankedChunk>>> retrieve(List<String> queryList) {
+    public List<Map<String, List<RankedChunk>>> retrieve(List<String> queryList, List<String> financialYears) {
 
         List<Map<String, List<RankedChunk>>> list = new ArrayList<>();
 
@@ -61,7 +61,7 @@ public class RetrievalOrchestrator {
                 }
 
                 long start = System.currentTimeMillis();
-                List<RankedChunk> chunks = strategy.retrieve(query, strategyConfig.getCandidateLimit());
+                List<RankedChunk> chunks = strategy.retrieve(query, strategyConfig.getCandidateLimit(), financialYears);
                 log.info("Retrieval Strategy '{}' returned {} results", strategy.getName(), chunks.size());
                 log.info("Retrieval Strategy '{}' execution time: {} ms", strategyConfig.getName(), System.currentTimeMillis() - start);
                 if (chunks.isEmpty()) continue;

@@ -28,9 +28,13 @@ public class VectorSearchStrategy implements RetrievalStrategy {
 
     @Override
     public List<RankedChunk> retrieve(String query, int limit) {
-        float[] queryEmbedding =
-                embeddingService.generateEmbedding(query);
-
+        float[] queryEmbedding = embeddingService.generateEmbedding(query);
         return vectorSearchRepository.search(queryEmbedding, limit);
+    }
+
+    @Override
+    public List<RankedChunk> retrieve(String query, int limit, List<String> financialYears) {
+        float[] queryEmbedding = embeddingService.generateEmbedding(query);
+        return vectorSearchRepository.search(queryEmbedding, limit, financialYears);
     }
 }
